@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="dateParser.js"></script>
+        <script src="dateParser.tests.js"></script>
+        <script>
+            var addCell = function(tr, text) {
+                var td = tr.insertCell();
+                td.textContent = text;
+            };
+            
+            function run() {
+                var resultTable = document.getElementById("resultTable");
+                
+            
+                var results = T.runTests({
+                    onTestCaseResult: function(result) {
+                        var tr = resultTable.insertRow();
+                        tr.classList.add(result.status);
+                        addCell(tr, result.name);
+                        addCell(tr, result["case"][0]);
+                        addCell(tr, result["case"][1]);
+                        addCell(tr, result.actual);
+                        addCell(tr, result.status);
+                        addCell(tr, (result.error && result.error.message) || "");
+                    }
+                });
+                
+                console.log(results);
+            }
+        </script>
+        <style>
+            .pass {
+                background-color: palegreen;
+            }
+            .fail {
+                background-color: pink;
+            }
+        </style>
+    </head>
+    <body onload="javascript: run()">
+        <table id="resultTable">
+            <tr>
+                <th>Test</th>
+                <th>Input</th>
+                <th>Expected</th>
+                <th>Actual</th>
+                <th>Status</th>
+                <th>Error</th>
+            </tr>
+        <table>
+    </body>
+</html>
