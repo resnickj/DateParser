@@ -12,11 +12,12 @@
             function run() {
                 var resultTable = document.getElementById("resultTable");
                 
-            
+                var index = 0;
                 var results = T.runTests({
                     onTestCaseResult: function(result) {
                         var tr = resultTable.insertRow();
                         tr.classList.add(result.status);
+                        addCell(tr, ++index);
                         addCell(tr, result.name);
                         addCell(tr, result["case"][0]);
                         addCell(tr, result["case"][1]);
@@ -41,6 +42,7 @@
     <body onload="javascript: run()">
         <table id="resultTable">
             <tr>
+                <th>#</th>
                 <th>Test</th>
                 <th>Input</th>
                 <th>Expected</th>
