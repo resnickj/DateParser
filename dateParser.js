@@ -1121,7 +1121,14 @@
         // consumed the largest number of input tokens (token stream has the largest
         // value for 'position' property), and sort items so that the best
         // AST appears first.
-        return items.sort(function(a, b) { return b.ts.position - a.ts.position; });
+        return items
+            .map(function(item) {
+                var ast = item.ast;
+                ast.score = item.ts.position; // attach a 'score' to AST root
+                return ast;
+            }).toSorted(function(a, b) { 
+                return b.score - a.score;
+            });
     }
     
     function printAst(ast, indent) {
@@ -1134,7 +1141,8 @@
     /// Parse the specified string and return the set of possible ASTs.
     //      str: the string to parse.
     //      returns: array of AST roots, ordered from best to worst.
-    function getMultiAst(str, parseAs /* = PHRASE */) {
+    function getMultiAst(str, options) {
+        options = options || {};
     
         var tokens = lex(str);
         
@@ -1145,29 +1153,35 @@
         });
         
         var ts = makeStream(tokens);
-        return rankAsts((parseAs || PHRASE)(ts))
-            .map(function(r) { return r.ast; });
+        return rankAsts((options.parseAs || PHRASE)(ts));
     }
     
     /// Parse the specified string and return the AST.
     //      str: the string to parse.
-    function getAst(str, parseAs /* = PHRASE */) {
-        return getMultiAst(str, parseAs)[0];
+    function getAst(str, options) {
+        var asts = getMultiAst(str, options);
+        
+        // If there was a tie, the input was ambiguous
+        if(asts.length > 1 && (asts[0].score === asts[1].score)
+            && (!options || !options.ambiguityHandling || options.ambiguityHandling === 'throw'))
+            throw new Error("Ambiguous input format.");
+        
+        return asts[0];
     }
     
     /// Pretty print the AST.
     //      strOrAst: the AST, or string to parse.
-    function showAst(strOrAst, parseAs /* = PHRASE */) {
+    function showAst(strOrAst, options) {
         if(typeof strOrAst === 'string') {
-            strOrAst = getAst(strOrAst, parseAs);
+            strOrAst = getAst(strOrAst, options);
         }
         printAst(strOrAst, "");
     }
     
     /// Pretty print all ASTs.
     //      str: the string to parse.
-    function showMultiAst(str, parseAs /* = PHRASE */) {
-        var asts = getMultiAst(str, parseAs);
+    function showMultiAst(str, options) {
+        var asts = getMultiAst(str, options);
         asts.forEach(function(ast, i) {
             print("AST #" + (i + 1));
             printAst(ast, "");
@@ -1180,7 +1194,12 @@
     //
     //      str: the string to parse.
     //      options: {
-    //          utc: (bool) - specifies that values should be interpreted as UTC instead of local.
+    //          parseAs: one of the values from the parseAs enumeration - specifies how to 
+    //              interpret the input text.
+    //          utc: bool - specifies that values should be interpreted as UTC instead of local.
+    //          ambiguityHandling: 'throw'|'first' - specifies what to do with ambiguous input.
+    //              Use 'throw' to throw an error (this is the default); use 'first' to return
+    //              the first of the possible interpretations.
     //      }
     //      returns: {
     //          start: a Date object representing the start date/time.
@@ -1190,7 +1209,7 @@
     function parse(str, options) {
         options = options || {};
     
-        var ast = getAst(str, PHRASE);
+        var ast = getAst(str, options);
         var value = extractValue(ast);
 
         var result = {
@@ -1215,21 +1234,22 @@
     return {
         parse: parse,
         
+        parseAs: {
+            DATE: DATE,
+            TIME: TIME,
+            DATETIME: DATETIME,
+            DATERANGE: DATERANGE,
+            TIMERANGE: TIMERANGE,
+            DATETIMERANGE: DATETIMERANGE,
+            PHRASE: PHRASE
+        },
+        
         dbg: {
             getAst: getAst,
             getMultiAst: getMultiAst,
             showAst: showAst,
             showMultiAst: showMultiAst,
             extractValue: extractValue,
-            parseAs: {
-                DATE: DATE,
-                TIME: TIME,
-                DATETIME: DATETIME,
-                DATERANGE: DATERANGE,
-                TIMERANGE: TIMERANGE,
-                DATETIMERANGE: DATETIMERANGE,
-                PHRASE: PHRASE
-            }
         }
     };
 }));
