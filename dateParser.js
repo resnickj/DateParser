@@ -740,16 +740,27 @@
         OPT = combinators.optional;
         
     
+    // Define higher-level constructs using combinations of primitives.
+    // Note that when using ALT, order matters insofar as alternatives
+    // that appear earlier in the list are more likely to be selected as "best",
+    // all other things being equal. This is particularly relevant with ambiguous
+    // phrases like
+    //      08/10/24
+    // which could be interpreted as any of
+    //      Aug 10 2024
+    //      Oct 8 2024
+    //      Oct 24 2008
+    
     var DATE = ALT([
-        SEQ(AstNodeType.date, [YR, DPS, MO, DPS, DM]),
+        SEQ(AstNodeType.date, [YR, OPT(DPS), MO, OPT(DPS), DM]),
         SEQ(AstNodeType.date, [MO, DPS, DM, DPS, YR]),
         SEQ(AstNodeType.date, [DM, DPS, MO, DPS, YR]),
         SEQ(AstNodeType.date, [MO, DPS, DM]),
         SEQ(AstNodeType.date, [DM, DPS, MO]),
         SEQ(AstNodeType.date, [OPT(DW), MO, DM, YR]),
         SEQ(AstNodeType.date, [OPT(DW), MO, DM]),
-        SEQ(AstNodeType.date, [DM, MO, YR]),
-        SEQ(AstNodeType.date, [DM, MO]),
+        SEQ(AstNodeType.date, [OPT(DW), DM, MO, YR]),
+        SEQ(AstNodeType.date, [OPT(DW), DM, MO]),
         SEQ(AstNodeType.date, [DW]),
         SEQ(AstNodeType.date, [DR]),
     ]);
