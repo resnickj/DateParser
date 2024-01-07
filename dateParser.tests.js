@@ -3,9 +3,41 @@ var T = (function() {
     // Use utc:true by default so that we don't have to worry
     // about timezones and test breaking depending on time of 
     // year due to daylight savings.
-    var defaultOptions = { utc: true };
+    const defaultOptions = { utc: true };
     
-    var tests = [];
+    const tests = [];
+    
+    const runTestCase = function(t, c) {
+        let input = c[0];
+        let expected = c[1];
+        
+        let options = { ... defaultOptions, ... c[2] };
+        let result = { name: t.name, "case": c };
+        try{
+            let actual = dateParser.parse(input, options).toString();
+            if(expected === undefined) {
+                // expected exception but didn't get one
+                result.status = "fail";
+            } else {
+                result.status = (actual === expected) ? "pass" : "fail";
+            }
+            result.actual = actual;
+        } catch(e) {
+            result.status = (expected === undefined)
+                ? "pass" // exception expected
+                : "fail";
+            result.error = e;
+        }
+        return result;
+    };
+    
+    const runTest = function(t) {
+        let cases = t.cases;
+        if(typeof cases === 'function') {
+            cases = cases();
+        }
+        return cases.map(c => runTestCase(t, c));
+    };
      
     return {
         test: function(name, cases){
@@ -14,41 +46,27 @@ var T = (function() {
         
         runTests: function(listener) {
             
-            var results = [];
-            for(var t of tests) {
-                var cases = t.cases;
-                if(typeof cases === 'function') {
-                    cases = cases();
-                }
-                for(var c of cases) {
-                    var input = c[0];
-                    var expected = c[1];
-                    
-                    var options = { ... defaultOptions, ... c[2] };
-                    var result = { name: t.name, "case": c };
-                    try{
-                        var actual = dateParser.parse(input, options).toString();
-                        if(expected === undefined) {
-                            // expected exception but didn't get one
-                            result.status = "fail";
-                        } else {
-                            result.status = (actual === expected) ? "pass" : "fail";
-                        }
-                        result.actual = actual;
-                    } catch(e) {
-                        result.status = (expected === undefined)
-                            ? "pass" // exception expected
-                            : "fail";
-                        result.error = e;
+            const allResults = [];
+            let i = 0;
+            const runNext = function() {
+                if(!tests[i]) {
+                    if(listener.onAllTestsCompleted) {
+                        listener.onAllTestsCompleted(allResults);
                     }
-                    results.push(result);
-                    if(listener && listener.onTestCaseResult) {
-                        listener.onTestCaseResult(result);
-                    }
+                    return;
                 }
-            }
+                
+                const t = tests[i++];
+                const testResults = runTest(t);
+                allResults.push(... testResults);
+                if(listener.onTestCompleted) {
+                    listener.onTestCompleted(testResults);
+                }
+                
+                setTimeout(runNext);
+            };
             
-            return results;
+            setTimeout(runNext);
         }
     };
 }());

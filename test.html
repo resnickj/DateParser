@@ -14,16 +14,26 @@
                 
                 var index = 0;
                 var results = T.runTests({
-                    onTestCaseResult: function(result) {
-                        var tr = resultTable.insertRow();
-                        tr.classList.add(result.status);
-                        addCell(tr, ++index);
-                        addCell(tr, result.name);
-                        addCell(tr, result["case"][0]);
-                        addCell(tr, result["case"][1]);
-                        addCell(tr, result.actual);
-                        addCell(tr, result.status);
-                        addCell(tr, (result.error && result.error.message) || "");
+                    onTestCompleted: function(results) {
+                        for(let result of results) {
+                            var tr = resultTable.insertRow();
+                            tr.classList.add(result.status);
+                            addCell(tr, ++index);
+                            addCell(tr, result.name);
+                            addCell(tr, result["case"][0]);
+                            addCell(tr, result["case"][1]);
+                            addCell(tr, result.actual);
+                            addCell(tr, result.status);
+                            addCell(tr, (result.error && result.error.message) || "");
+                        }
+                    },
+                    onAllTestsCompleted: function(results) {
+                        const total = results.length;
+                        const passed = results.filter(r => r.status === "pass").length;
+                        const failed = results.filter(r => r.status === "fail").length;
+                        
+                        const summaryLine = document.getElementById("summaryLine");
+                        summaryLine.textContent = `Total: ${total}, Passed: ${passed}, Failed: ${failed}`;
                     }
                 });
                 
@@ -31,15 +41,27 @@
             }
         </script>
         <style>
+            body {
+                font-family: monospace;
+            }
             .pass {
                 background-color: palegreen;
             }
             .fail {
                 background-color: pink;
             }
+            #resultTable {
+                width: 100%;
+            }
+            #summaryLine {
+                margin: 1em;
+                font-weight: bold;
+            }
         </style>
     </head>
     <body onload="javascript: run()">
+        <div id="summaryLine">
+        </div>
         <table id="resultTable">
             <tr>
                 <th>#</th>
